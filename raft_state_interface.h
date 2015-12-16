@@ -13,6 +13,7 @@ using std::endl;
 class RaftStateInterface {
 
 public:
+    int currentState;
     // none of those should actually get called, only overriden versions:
     virtual void becomeFollower() {
         cerr << "Already Follower" << endl;
