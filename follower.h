@@ -8,9 +8,15 @@
 #include "raft_state_interface.h"
 
 class Follower : public RaftStateInterface {
+    time_t  lastUpdFromLeader = time(NULL);
+    time_t  leaderTimeout = 10; // in seconds
+
+public:
+    Follower();
 
     void becomeCandidate();
     void becomeLeader();
+    void pollLastUpdFromLeader();
 };
 
 #endif //XIO_RAFT_FOLLOWER_H
