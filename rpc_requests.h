@@ -6,18 +6,20 @@
 #define XIO_RAFT_RPC_REQUESTS_H
 
 #include <stdint.h>
-#include <array>
+#include <vector>
 
-using std::array;
+using std::vector;
 
 struct AppendEntryRequest {
     uint64_t        term;
-    uint8_t         leaderId;
+    uint16_t        leaderId;
     uint64_t        prevLogIndex;
     uint64_t        prevLogTerm;
-    array<char *>   entries;
+    uint16_t        entriesSize;
     uint64_t        leaderCommitIndex;
 };
+// entries should be in sglist[1]
+// char*           entries; // null-terminated
 
 struct AppendEntryReply {
     uint64_t        term;
@@ -26,7 +28,7 @@ struct AppendEntryReply {
 
 struct VoteRequestRequest {
     uint64_t        term;
-    uint8_t         candidateId;
+    uint16_t        candidateId;
     uint64_t        lastLogIndex;
     uint64_t        lastLogTerm;
 };

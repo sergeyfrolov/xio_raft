@@ -9,13 +9,13 @@ const int RAFT_FOLLOWER     = 0x00000001;
 const int RAFT_CANDIDATE    = 0x00000010;
 const int RAFT_LEADER       = 0x00000110;
 
-char* HEARTBEAT_RPC            = (char*) "HEARTBEAT_RPC";
-char* HEARTBEAT_RPC_REPLY      = (char*) "HEARTBEAT_RPC_REPLY";
-char* APPEND_RPC               = (char*) "APPEND_RPC";
-char* APPEND_RPC_REPLY         = (char*) "APPEND_RPC_REPLY";
-char* REQUEST_VOTE             = (char*) "REQUEST_VOTE";
-char* REQUEST_VOTE_REPLY       = (char*) "REQUEST_VOTE_REPLY";
-char* CLIENT_APPEND_REQUEST    = (char*) "CLIENT_APPEND_REQUEST";
+static char* HEARTBEAT_RPC            = (char*) "HEARTBEAT_RPC";
+static char* HEARTBEAT_RPC_REPLY      = (char*) "HEARTBEAT_RPC_REPLY";
+static char* APPEND_RPC               = (char*) "APPEND_RPC";
+static char* APPEND_RPC_REPLY         = (char*) "APPEND_RPC_REPLY";
+static char* REQUEST_VOTE             = (char*) "REQUEST_VOTE";
+static char* REQUEST_VOTE_REPLY       = (char*) "REQUEST_VOTE_REPLY";
+static char* CLIENT_APPEND_REQUEST    = (char*) "CLIENT_APPEND_REQUEST";
 
 const int HEARTBEAT_TIMEOUT               = 5;
 const int MIN_TIMEOUT_TO_BECOME_CANDIDATE = 10;
