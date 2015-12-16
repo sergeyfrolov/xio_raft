@@ -3,20 +3,28 @@
 // found in the LICENSE file.
 
 #include <iostream>
-#include "libxio.h"
+#include <sstream>
 #include "raft_log.h"
 
-namespace xio_raft {
-#define FOLLOWER    0x00000001
-#define CANDIDATE   0x00000010
-#define LEADER      0x00000110
+int main(int argc, char *argv[]) {
+    if (argc != 3) {
+        cerr << "Wrong amount of arguments: given " << argc - 1 << ", expected 2." << endl;
+        cerr << "Usage: ./dfserver nodes.conf ID" << endl;
+        return 1;
+    }
+    string nodes_conf_file = string(argv[1]);
+    string local_id = string(argv[2]);
 
-}
-
-int main() {
     xio_init();
 
-    RaftLog::getInstance().term = 1;
+    RaftLog::getInstance().nodeAddress = RaftLog::parse_config_file(nodes_conf_file);
+    RaftLog::getInstance().currentTerm = 1;
+    RaftLog::getInstance().id = stoi(local_id);
+    RaftLog::getInstance().nodesTotal = RaftLog::getInstance().nodeAddress.size();
+
+    // fill completely RaftLog::getInstance().nodeAddress
+    RaftLog::getInstance().initXio();
+    RaftLog::getInstance().runXioLoop();
 
     return 0;
 }
