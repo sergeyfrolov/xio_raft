@@ -15,8 +15,6 @@ int main(int argc, char *argv[]) {
     string nodes_conf_file = string(argv[1]);
     string local_id = string(argv[2]);
 
-    xio_init();
-
     RaftLog::getInstance().nodeAddress = RaftLog::parse_config_file(nodes_conf_file);
     RaftLog::getInstance().currentTerm = 1;
     RaftLog::getInstance().id = stoi(local_id);
