@@ -12,7 +12,8 @@
 
 namespace xio_raft {
     static int on_request(struct xio_session *session, struct xio_msg *req, int last_in_rxq, void *cb_user_context) {
-        RaftLog::getInstance().stateSharedLock.lock();
+        std::shared_lock<std::shared_timed_mutex> stateSharedLock;
+        stateSharedLock.lock();
 
         struct server_data *server_data = (struct server_data *) cb_user_context;
 
@@ -122,16 +123,12 @@ namespace xio_raft {
         // if CLIENT_APPEND_REQUEST
         //     append
 
-        RaftLog::getInstance().stateSharedLock.unlock();
+        stateSharedLock.unlock();
         return 0;
     }
 
     // TODO: on response finish: free mem
    
-
-/*---------------------------------------------------------------------------*/
-/* on_session_event							     */
-/*---------------------------------------------------------------------------*/
     static int on_session_event(struct xio_session *session, struct xio_session_event_data *event_data,
                                 void *cb_user_context) {
         struct session_data *session_data = (struct session_data *) cb_user_context;
@@ -153,7 +150,7 @@ namespace xio_raft {
             case XIO_SESSION_TEARDOWN_EVENT:
                 fprintf(stderr, "Destroy the session...\n");
                 xio_session_destroy(session);
-                xio_context_stop_loop(session_data->ctx);  /* exit */
+                // xio_context_stop_loop(session_data->ctx);  /* exit */
                 break;
             default:
                 break;
@@ -162,9 +159,6 @@ namespace xio_raft {
         return 0;
     }
 
-/*---------------------------------------------------------------------------*/
-/* on_new_session							     */
-/*---------------------------------------------------------------------------*/
     static int on_new_session(struct xio_session *session, struct xio_new_session_req *req, void *cb_user_context) {
         struct session_data *session_data = (struct session_data *) cb_user_context;
 
@@ -175,7 +169,6 @@ namespace xio_raft {
             xio_accept(session, NULL, 0, NULL, 0);
         else
             xio_reject(session, (enum xio_status) EISCONN, NULL, 0);
-
 
         fprintf(stderr, "Leaving on_new_session\n");
         return 0;
