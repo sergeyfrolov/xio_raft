@@ -57,15 +57,10 @@ public:
     std::vector<uint64_t>         nextIndex;  // next to send
     std::vector<uint64_t>         matchIndex; // known to be replicated
 
-    // locks
-    std::shared_lock<std::shared_timed_mutex> stateSharedLock;
-    std::unique_lock<std::shared_timed_mutex> stateUniqueLock;
-
     // xio stuff
     struct xio_session_ops          xio_session_ops;
     struct xio_session**            xio_sessions;
     struct xio_server*              xio_server;
-    struct server_data*             xio_server_data;
     struct session_data*            xio_session_data;
     struct xio_session_params*      xio_params;
     struct xio_connection_params*   xio_cparams;
@@ -105,7 +100,5 @@ struct session_data {
     struct xio_context          *ctx;
     struct xio_connection       *conn;
 };
-
-
 
 #endif //XIO_RAFT_RAFT_LOG_H

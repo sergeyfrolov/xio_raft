@@ -9,7 +9,8 @@
 #include "raft_log.h"
 
 Candidate::Candidate() {
-    RaftLog::getInstance().stateUniqueLock.lock();
+    std::unique_lock<std::shared_timed_mutex> stateUniqueLock;
+    stateUniqueLock.lock();
     RaftLog::getInstance().votes = 1;
     RaftLog::getInstance().currentTerm++;
 
@@ -20,14 +21,15 @@ Candidate::Candidate() {
     sendRequestsForVote();
     pollT = std::move(std::thread(&Candidate::pollYourself, this));
     currentState = RAFT_CANDIDATE;
-    RaftLog::getInstance().stateUniqueLock.unlock();
+    stateUniqueLock.unlock();
 }
 
 Candidate::~Candidate() {
-    RaftLog::getInstance().stateUniqueLock.lock();
+    std::unique_lock<std::shared_timed_mutex> stateUniqueLock;
+    stateUniqueLock.lock();
     to_die = true;
     if (pollT.joinable()) pollT.join();
-    RaftLog::getInstance().stateUniqueLock.unlock();
+    stateUniqueLock.unlock();
 }
 
 void Candidate::sendRequestsForVote() {
@@ -68,17 +70,19 @@ void Candidate::pollYourself() {
 }
 
 void Candidate::becomeFollower() {
-    RaftLog::getInstance().stateUniqueLock.lock();
+    std::unique_lock<std::shared_timed_mutex> stateUniqueLock;
+    stateUniqueLock.lock();
     cout << "Going from Candidate to Follower" << endl;
-    delete this;
     RaftLog::getInstance().setCurrentState(new Follower);
-    RaftLog::getInstance().stateUniqueLock.unlock();
+    stateUniqueLock.unlock();
+    delete this;
 };
 
 void Candidate::becomeLeader() {
-    RaftLog::getInstance().stateUniqueLock.lock();
+    std::unique_lock<std::shared_timed_mutex> stateUniqueLock;
+    stateUniqueLock.lock();
     cout << "Going from Candidate to Leader" << endl;
-    delete this;
     RaftLog::getInstance().setCurrentState(new Leader);
-    RaftLog::getInstance().stateUniqueLock.unlock();
+    stateUniqueLock.unlock();
+    delete this;
 };

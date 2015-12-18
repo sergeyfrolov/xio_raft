@@ -11,20 +11,21 @@
 Follower::Follower() {
     // do not need to keep track of this thread, as it finishes execution in only case of destruction:
     //    becoming candidate after timeout
-    std::thread(&Follower::pollLastUpdFromLeader, this).detach();
+    pollT = std::move(std::thread(&Follower::pollLastUpdFromLeader, this));
     currentState = RAFT_FOLLOWER;
 }
 
 void Follower::becomeCandidate(){
-    RaftLog::getInstance().stateUniqueLock.lock();
+    std::unique_lock<std::shared_timed_mutex> stateUniqueLock;
+    stateUniqueLock.lock();
     cout << "Going from Follower to Candidate" << endl;
-    delete this;
     RaftLog::getInstance().setCurrentState(new Candidate);
-    RaftLog::getInstance().stateUniqueLock.unlock();
+    stateUniqueLock.unlock();
+    delete this;
 };
 
 void Follower::pollLastUpdFromLeader(){
-    while(1) {
+    while(!to_die) {
         time_t timeout_to_become_candidate = leaderTimeout + MIN_TIMEOUT_TO_BECOME_CANDIDATE +
                                              rand() %
                                              (MAX_TIMEOUT_TO_BECOME_CANDIDATE - MIN_TIMEOUT_TO_BECOME_CANDIDATE);
@@ -39,3 +40,11 @@ void Follower::pollLastUpdFromLeader(){
 void Follower::becomeLeader() {
     cerr << "Cannot go from Follower to Leader!" << endl;
 };
+
+Follower::~Follower() {
+    std::unique_lock<std::shared_timed_mutex> stateUniqueLock;
+    stateUniqueLock.lock();
+    to_die = true;
+    if (pollT.joinable()) pollT.join();
+    stateUniqueLock.unlock();
+}

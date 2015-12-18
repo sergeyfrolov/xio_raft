@@ -18,10 +18,11 @@ Leader::Leader(){
 }
 
 Leader::~Leader(){
-    RaftLog::getInstance().stateUniqueLock.lock();
+    std::unique_lock<std::shared_timed_mutex> stateUniqueLock;
+    stateUniqueLock.lock();
     to_die = true;
     if (pollT.joinable()) pollT.join();
-    RaftLog::getInstance().stateUniqueLock.unlock();
+    stateUniqueLock.unlock();
 }
 
 void Leader::sendAppendEntryRPCs() {
@@ -128,11 +129,12 @@ void Leader::sendHeartbeat() {
 }
 
 void Leader::becomeFollower() {
-    RaftLog::getInstance().stateUniqueLock.lock();
+    std::unique_lock<std::shared_timed_mutex> stateUniqueLock;
+    stateUniqueLock.lock();
     cout << "Going from Leader to Follower" << endl;
-    delete this;
     RaftLog::getInstance().setCurrentState(new Follower);
-    RaftLog::getInstance().stateUniqueLock.unlock();
+    stateUniqueLock.unlock();
+    delete this;
 };
 
 void Leader::becomeCandidate() {
