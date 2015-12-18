@@ -5,14 +5,18 @@
 #ifndef XIO_RAFT_FOLLOWER_H
 #define XIO_RAFT_FOLLOWER_H
 
+#include <thread>
 #include "raft_state_interface.h"
 
 class Follower : public RaftStateInterface {
     time_t  lastUpdFromLeader = time(NULL);
     time_t  leaderTimeout = 10; // in seconds
+    std::thread         pollT;
+    bool                to_die = false;
 
 public:
     Follower();
+    ~Follower();
 
     void becomeCandidate();
     void becomeLeader();
