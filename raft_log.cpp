@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <thread>
 #include "raft_log.h"
+#include "follower.h"
 #include "xio_callbacks.h"
 #include <sstream>
 #include <fstream>
@@ -13,18 +14,20 @@ using std::ifstream;
 using std::istringstream;
 
 
-RaftLog::RaftLog():
-        stateSharedLock(stateMutex, std::defer_lock), stateUniqueLock(stateMutex, std::defer_lock) {
+RaftLog::RaftLog() {
     currentTerm = 0;
     votes = 0;
+    state = new Follower();
 };
 
 void RaftLog::runXioLoop() {
-    for(int i = 1; i < nodesTotal; i++) {
-        if (i != id)
-            xio_context_run_loop(xio_session_data[i].ctx, 10);
-        else
-            xio_context_run_loop(xio_session_data[i].ctx, 100);
+    while(1) {
+        for (int i = 1; i < nodesTotal; i++) {
+            if (i != id)
+                xio_context_run_loop(xio_session_data[i].ctx, 10);
+            else
+                xio_context_run_loop(xio_session_data[i].ctx, 100);
+        }
     }
 }
 
@@ -56,16 +59,17 @@ void RaftLog::applyAllUncommitedLogs() {
 }
 
 void RaftLog::initXio() {
+    memset(&xio_session_ops, 0, sizeof(xio_session_ops));
     xio_session_ops.on_session_event = xio_raft::on_session_event;
     xio_session_ops.on_new_session = xio_raft::on_new_session;
     xio_session_ops.on_msg_send_complete = NULL;
     xio_session_ops.on_msg = xio_raft::on_request;
     xio_session_ops.on_msg_error = NULL;
 
-    xio_cparams         = new xio_connection_params[nodesTotal];
-    xio_params          = new xio_session_params[nodesTotal];
-    xio_session_data    = new session_data[nodesTotal];
-    xio_sessions        = new xio_session*[nodesTotal];
+    xio_cparams         = new xio_connection_params[nodesTotal + 1];
+    xio_params          = new xio_session_params[nodesTotal + 1];
+    xio_session_data    = new session_data[nodesTotal + 1];
+    xio_sessions        = new xio_session*[nodesTotal + 1];
 
     xio_init();
 
@@ -74,13 +78,26 @@ void RaftLog::initXio() {
         int level = XIO_LOG_LEVEL_DEBUG;
         xio_set_opt(NULL, XIO_OPTLEVEL_ACCELIO, XIO_OPTNAME_LOG_LEVEL, &level, sizeof(level));
     }
+    memset(xio_params, 0, sizeof(xio_params));
+    memset(xio_cparams, 0, sizeof(xio_cparams));
+    memset(xio_session_data, 0, sizeof(xio_session_data));
+
+    /* create thread context for the client */
+    cout << "Initializing " << id << " out of " << nodesTotal << endl;
+    xio_session_data[id].ctx = xio_context_create(NULL, 0, -1);
+    xio_server = xio_bind(xio_session_data[id].ctx, &xio_session_ops,
+                          nodeAddress[id].c_str(), NULL, 0, &xio_session_data[id]);
+    if (xio_server) {
+        std::cout << "Bound to " << nodeAddress[id] << std::endl;
+    }
+    else {
+        std::cerr << "Error! Could not bind to " << nodeAddress[id] << std::endl;
+    }
+
+    sleep(5);
 
     for(int i = 1; i < nodesTotal; i++) {
         if (i != id) {
-            memset(&xio_session_data[i], 0, sizeof(xio_session_data[i]));
-            memset(&xio_params[i], 0, sizeof(xio_params[i]));
-            memset(&xio_cparams[i], 0, sizeof(xio_cparams[i]));
-
             xio_session_data[i].ctx = xio_context_create(NULL, 0, -1);
 
             xio_params[i].type = XIO_SESSION_CLIENT;
@@ -96,21 +113,6 @@ void RaftLog::initXio() {
 
             /* connect the session  */
             xio_session_data[i].conn = xio_connect(&xio_cparams[i]);
-        }
-        else
-        {
-            memset(&xio_session_data[i], 0, sizeof(xio_session_data[i]));
-
-            /* create thread context for the client */
-            xio_session_data[i].ctx = xio_context_create(NULL, 0, -1);
-            xio_server = xio_bind(xio_session_data[i].ctx, &xio_session_ops,
-                                  nodeAddress[id].c_str(), NULL, 0, &xio_session_data[i]);
-            if (xio_server) {
-                std::cout << "Bound to " << nodeAddress[id].c_str() << std::endl;
-            }
-            else {
-                std::cerr << "Error! Could not bind!" << std::endl;
-            }
         }
     }
 
